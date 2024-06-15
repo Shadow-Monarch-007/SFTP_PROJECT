@@ -65,6 +65,8 @@ public class FIGCkycUpload {
 
     String sessionId = "";
 
+    Set<String> uniqueEntries;
+
     @Resource
     private SRVTimerServiceConfig Timer_Service_Id;
 
@@ -111,6 +113,8 @@ public class FIGCkycUpload {
                 String missingDocumentsString = "";
                 List<String> missingDocuments = new ArrayList<>();
                 List<String> size_zero = new ArrayList<>();
+
+                uniqueEntries = new HashSet<>();
 
                 folderId = rs.getLong("FOLDERID");
                 pinstid = rs.getString("PROCESSINSTANCEID");
@@ -224,6 +228,18 @@ public class FIGCkycUpload {
                                         break;
                                 }
                                 if (directory.exists() && directory.isDirectory()) {
+
+                                    File file = new File("DMS_ARCHIVAL" + File.separator + "FIG" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID"));
+                                    String csv = file.toString() + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + ".csv";
+                                    try (CSVWriter uniquewriter = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER)) {
+                                        System.out.println("[FIGCKYC-UPLOAD]-- Writing all unique entries to the CSV file:");
+                                        uniqueEntries.forEach((uniqueEntry) -> {
+                                            System.out.println("[FIGCKYC-UPLOAD]---ENTRY INSIDE THE SET: " + uniqueEntry);
+                                            String[] values = (uniqueEntry).split(",");
+                                            uniquewriter.writeNext(values);
+                                        });
+                                    }
+
                                     File[] files = directory.listFiles();
                                     if (files != null) {
                                         for (String documentName : documentNames) {
@@ -547,21 +563,28 @@ public class FIGCkycUpload {
             }
 
             System.out.println("[FIGCKYC-UPLOAD]---- Doc Copied To Server Locations--" + DocTypeName);
-            if (!docExtName.trim().startsWith("FIG Address Proof Corress") && !docExtName.trim().startsWith("FIG RELATION ID") && !docExtName.trim().startsWith("FIG SECOND ID") && !docExtName.trim().startsWith("FIG ID PROOF") && !docExtName.trim().startsWith("FIG ADDRESS PROOF")) {
-                System.out.println("[FIGCKYC-UPLOAD]---- Inside the if loop" + docExtName);
-                writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
-                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + docExtName).split(",");
-                writer.writeNext(values);
-                writer.close();
-            }
-//            System.out.println("[DOC Upload] - Doc Copied To Server Locations--" + DocTypeName);
-//            if (!DocTypeName.trim().startsWith("Address Proof Corress") && !DocTypeName.trim().startsWith("Relation ID Proof") && !DocTypeName.trim().startsWith("Second ID Proof") && !DocTypeName.trim().startsWith("ID Proof") && !DocTypeName.trim().startsWith("Address Proof")) {
-//                System.out.println("[DOC Upload] - Inside the if loop" + DocTypeName);
+//            if (!docExtName.trim().startsWith("FIG Address Proof Corress") && !docExtName.trim().startsWith("FIG RELATION ID") && !docExtName.trim().startsWith("FIG SECOND ID") && !docExtName.trim().startsWith("FIG ID PROOF") && !docExtName.trim().startsWith("FIG ADDRESS PROOF")) {
+//                System.out.println("[FIGCKYC-UPLOAD]---- Inside the if loop" + docExtName);
 //                writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
-//                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + DocTypeName).split(",");
+//                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + docExtName).split(",");
 //                writer.writeNext(values);
 //                writer.close();
 //            }
+            if (!docExtName.trim().startsWith("FIG Address Proof Corress") && !docExtName.trim().startsWith("FIG RELATION ID") && !docExtName.trim().startsWith("FIG SECOND ID") && !docExtName.trim().startsWith("FIG ID PROOF") && !docExtName.trim().startsWith("FIG ADDRESS PROOF")) {
+                System.out.println("[FIGCKYC-UPLOAD]-- Inside the if loop" + DocTypeName);
+                //writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
+                String entry = docExtName + "." + extension + ","
+                        + dataMap.get("PROCESSINSTANCEID") + ","
+                        + dataMap.get("ACCOUNTNO") + ","
+                        + dataMap.get("CIFID") + ","
+                        + DocTypeName;
+                if (uniqueEntries.add(entry)) {
+                    System.out.println("[MFCKYC-UPLOAD]-- Added the data to set for csv writing.");
+                } else {
+                    System.out.println("[MFCKYC-UPLOAD]-- Duplicate entry skipped for " + DocTypeName);
+                }
+            }
+
             System.out.println("[FIGCKYC-UPLOAD]---- Csv Entry Created");
             status = 1;
         } catch (IOException ex) {
@@ -688,16 +711,55 @@ public class FIGCkycUpload {
                     proofName = strTemp + ".pdf";
                     StatusValue = "Y";
                 }
-                testFile = new File(fileA);
-                if (testFile.exists()) {
+//                testFile = new File(fileA);
+//                if (testFile.exists()) {
+//                    files.add(fileA);
+//                    files.add(fileB);
+//                    System.out.println("-fileA--" + fileA);
+//                    System.out.println("-fileA--" + fileB);
+//                    System.out.println("Pdf upload csvname: " + csvName);
+//                    ImageToPDF(files, path + File.separator + proofName);
+//                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
+//                    writer.writeNext(values);
+//                    if (StatusValue.equalsIgnoreCase("Y")) {
+//                        DeleteFile(files);
+//                        files.clear();
+//                        fileA = path + File.separator + "ID Proof Front.jpg";
+//                        fileB = path + File.separator + "ID Proof Back.jpg";
+//                        files.add(fileA);
+//                        files.add(fileB);
+//                        DeleteFile(files);
+//                    } else {
+//                        DeleteFile(files);
+//                    }
+//                    files.clear();
+//                } else {
+//                    System.out.println("[FIGCKYC-UPLOAD]---- CKyc-- Doc Not Found-Address Proof");
+//                }
+                File file_front = new File(fileA);
+
+                File file_back = new File(fileB);
+
+                String entry = null;
+
+                if (file_front.exists() && file_back.exists()) {
                     files.add(fileA);
                     files.add(fileB);
-                    System.out.println("-fileA--" + fileA);
-                    System.out.println("-fileA--" + fileB);
-                    System.out.println("Pdf upload csvname: " + csvName);
+                    System.out.println("[FIGCKYC-UPLOAD]---BOTH FRONT AND BACK ID PROOFS ARE VAILABLE: ");
+                    System.out.println("[FIGCKYC-UPLOAD]---fileA--" + fileA);
+                    System.out.println("[FIGCKYC-UPLOAD]---fileB--" + fileB);
+                    System.out.println("[FIGCKYC-UPLOAD]--Pdf upload csvname: " + csvName);
                     ImageToPDF(files, path + File.separator + proofName);
-                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
-                    writer.writeNext(values);
+
+//                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
+//                    writer.writeNext(values);
+                    entry = proofName + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
+
+                    // Check if the entry is unique
                     if (StatusValue.equalsIgnoreCase("Y")) {
                         DeleteFile(files);
                         files.clear();
@@ -710,9 +772,38 @@ public class FIGCkycUpload {
                         DeleteFile(files);
                     }
                     files.clear();
-                } else {
-                    System.out.println("[FIGCKYC-UPLOAD]---- CKyc-- Doc Not Found-Address Proof");
+                } else if (!file_front.exists() && !file_back.exists()) {
+                    // Neither file exists
+                    System.out.println("[FIGCKYC-UPLOAD]---NEITHER FRONT NOR BACK ID PROOFS ARE AVAILABLE.");
+                    // Handle the case where neither file exists, if needed
+                } else if (file_front.exists() && !file_back.exists()) {
+                    System.out.println("[FIGCKYC-UPLOAD]---BACK ID PROOF IS NOT AVAILABLE.");
+//                    String[] values = (strTemp + " Front.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + strTemp).split(",");
+//                    writer.writeNext(values);
+                    entry = strTemp + " Front.jpg" + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
+                } else if (!file_front.exists() && file_back.exists()) {
+                    System.out.println("[FIGCKYC-UPLOAD]---FRONT ID PROOF IS NOT AVAILABLE.");
+//                    String[] values = (strTemp + " Back.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + strTemp).split(",");
+//                    writer.writeNext(values);
+                    entry = strTemp + " Back.jpg" + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
                 }
+                if (entry != null) {
+                    if (uniqueEntries.add(entry)) {
+                        System.out.println("[FIGCKYC-UPLOAD]-- Added the data to set for csv writing.");
+                    } else {
+                        System.out.println("[FIGCKYC-UPLOAD]-- Duplicate entry skipped for " + proofName);
+                    }
+
+                }
+
             }
             writer.close();
         } catch (FileNotFoundException fx) {

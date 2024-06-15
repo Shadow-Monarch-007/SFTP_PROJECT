@@ -40,6 +40,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -74,6 +75,8 @@ public class MFCkycUpload_0Kb_version {
     HashMap tokenMap = new HashMap<>();
 
     String sessionId = "";
+
+    Set<String> uniqueEntries;
 
     @Resource
     private SRVTimerServiceConfig Timer_Service_Id;
@@ -119,6 +122,7 @@ public class MFCkycUpload_0Kb_version {
             rs = (ResultSet) callableStatement.getObject(2);
             while (rs.next()) {
                 dataMap = new HashMap<>();
+                uniqueEntries = new HashSet<>();
 
                 String missingDocumentsString = "";
                 List<String> missingDocuments = new ArrayList<>();
@@ -161,6 +165,7 @@ public class MFCkycUpload_0Kb_version {
                         //int Status = initiateDocUpload(dataMap, Long.valueOf(folderId), con, pinstid);
                         System.out.println("[MFCKYC-UPLOAD]--PROCEEDING FOR DOCUPLOAD.");
                         int Status = initiateDocUpload(dataMap, folderId, con, pinstid);
+
                         System.out.println("[MFCKYC-UPLOAD]-- Status:" + Status);
                         if (Status == 1) {
                             try {
@@ -248,6 +253,18 @@ public class MFCkycUpload_0Kb_version {
                                         break;
                                 }
                                 if (directory.exists() && directory.isDirectory()) {
+
+                                    File file = new File("DMS_ARCHIVAL" + File.separator + "MF" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID"));
+                                    String csv = file.toString() + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + ".csv";
+                                    try (CSVWriter uniquewriter = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER)) {
+                                        System.out.println("[MFCKYC-UPLOAD]-- Writing all unique entries to the CSV file:");
+                                        uniqueEntries.forEach((uniqueEntry) -> {
+                                            System.out.println("[MF-SFTP]---ENTRY INSIDE THE SET: " + uniqueEntry);
+                                            String[] values = (uniqueEntry).split(",");
+                                            uniquewriter.writeNext(values);
+                                        });
+                                    }
+
                                     File[] files = directory.listFiles();
                                     if (files != null) {
                                         for (String documentName : documentNames) {
@@ -405,9 +422,9 @@ public class MFCkycUpload_0Kb_version {
                             updateFlag(con, dataMap.get("PROCESSINSTANCEID").toString(), "EXC", "ERROR WHILE FETHCING DOCS FROM DMS");
                         }
                     }
-                    if (dataMap.get("TEMPFLAG").toString().equals("DONE") && dataMap.get("UPLOADFLAG").toString().equals("")) {
-                        initiateSftp(this.configObj, con, dataMap);
-                    }
+//                    if (dataMap.get("TEMPFLAG").toString().equals("DONE") && dataMap.get("UPLOADFLAG").toString().equals("")) {
+//                        initiateSftp(this.configObj, con, dataMap);
+//                    }
                 }
             }
             closeCallableConnection(rs, callableStatement);
@@ -612,24 +629,32 @@ public class MFCkycUpload_0Kb_version {
 
             }
 
-//            if (extension.equalsIgnoreCase("pdf")) {
-//                byte[] array = new byte[is.available()];
-//                is.read(array);
-//                try (FileOutputStream fos = new FileOutputStream("DMS_ARCHIVAL" + File.separator + "MF" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension)) {
-//                    fos.write(array);
-//                }
+//            if (!DocTypeName.trim().startsWith("Address Proof Corress") && !DocTypeName.trim().startsWith("Relation ID Proof") && !DocTypeName.trim().startsWith("Second ID Proof") && !DocTypeName.trim().startsWith("ID Proof") && !DocTypeName.trim().startsWith("Address Proof")) {
+//                System.out.println("[MFCKYC-UPLOAD]-- Inside the if loop" + DocTypeName);
+//                writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
+//                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + DocTypeName).split(",");
+//                writer.writeNext(values);
+//                writer.close();
+//                System.out.println("[MFCKYC-UPLOAD]-- Csv Entry Created");
 //            } else {
-//                BufferedImage bImageFromConvert = ImageIO.read(is);
-//                ImageIO.write(bImageFromConvert, extension, new File("DMS_ARCHIVAL" + File.separator + "MF" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension));
+//                System.out.println("[MFCKYC-UPLOAD]-- Csv entry Skipped for  " + DocTypeName);
 //            }
-//            System.out.println("[MFCKYC-UPLOAD]-- Doc Copied To Server Locations--" + DocTypeName);
             if (!DocTypeName.trim().startsWith("Address Proof Corress") && !DocTypeName.trim().startsWith("Relation ID Proof") && !DocTypeName.trim().startsWith("Second ID Proof") && !DocTypeName.trim().startsWith("ID Proof") && !DocTypeName.trim().startsWith("Address Proof")) {
                 System.out.println("[MFCKYC-UPLOAD]-- Inside the if loop" + DocTypeName);
-                writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
-                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + DocTypeName).split(",");
-                writer.writeNext(values);
-                writer.close();
-                System.out.println("[MFCKYC-UPLOAD]-- Csv Entry Created");
+                //writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
+                String entry = docExtName + "." + extension + ","
+                        + dataMap.get("PROCESSINSTANCEID") + ","
+                        + dataMap.get("ACCOUNTNO") + ","
+                        + dataMap.get("CIFID") + ","
+                        + DocTypeName;
+
+                
+                if (uniqueEntries.add(entry)) {
+                    System.out.println("[MFCKYC-UPLOAD]-- Added the data to set for csv writing.");
+                } else {
+                    System.out.println("[MFCKYC-UPLOAD]-- Duplicate entry skipped for " + DocTypeName);
+                }
+
             } else {
                 System.out.println("[MFCKYC-UPLOAD]-- Csv entry Skipped for  " + DocTypeName);
             }
@@ -645,7 +670,7 @@ public class MFCkycUpload_0Kb_version {
     }
 
     public void cKycupdate(Map<String, String> dataMap, Connection con, String pinstid) {
-        CSVWriter writer = null;
+        //CSVWriter writer = null;
         int status = 0;
         String fileA = "";
         File testFile = null;
@@ -665,7 +690,7 @@ public class MFCkycUpload_0Kb_version {
             System.out.println("[MFCKYC-UPLOAD]-- TEMPLOC-- SFTP-" + this.configObj.getDmsSftpLocalDir());
             dataMap.put("TEMPLOC", this.configObj.getDmsSftpLocalDir());
             String csv = file.toString() + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + ".csv";
-            writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
+            //writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
             System.out.println("[MFCKYC-UPLOAD]-- CKyc-- csv file-" + csv);
 
             List<String> files = new ArrayList<>();
@@ -712,35 +737,6 @@ public class MFCkycUpload_0Kb_version {
 
                 switch (UID_Present) {
                     case "NO": {
-//                        if (strTemp.equalsIgnoreCase("Address Proof")) {
-//                            System.out.println("1--Working==");
-//                            fileA = path + File.separator + "Address Proof Front.jpg";
-//                            fileB = path + File.separator + "Address Proof Back.jpg";
-//                            csvName = strTemp;
-//                            System.out.println("Status---" + StatusValue);
-//                            if (AddressProofType.equalsIgnoreCase("1") && IdProoftype.equalsIgnoreCase("1") && !StatusValue.equalsIgnoreCase("Y")) {
-//                                proofName = "UID_1.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("2") && IdProoftype.equalsIgnoreCase("2")) {
-//                                proofName = "Voters_Identity_Card_1.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("4") && IdProoftype.equalsIgnoreCase("4")) {
-//                                proofName = "Passport_1.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("5")) {
-//                                proofName = "Utility_Bill.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("6")) {
-//                                proofName = "Driving_License.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("7")) {
-//                                proofName = "NREGA_Job_Card.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("8")) {
-//                                proofName = "Utility_Bill.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("3")) {
-//                                proofName = "Other.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("1") && IdProoftype.equalsIgnoreCase("2") && !StatusValue.equalsIgnoreCase("Y")) {
-//                                proofName = "UID.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("2") && IdProoftype.equalsIgnoreCase("1")) {
-//                                proofName = "Voters_Identity_Card.pdf";
-//                            }
-//                            StatusValue = "N";
-//                        } else 
 
                         if (strTemp.equalsIgnoreCase("ID Proof")) {
                             System.out.println("2--Working==");
@@ -780,43 +776,6 @@ public class MFCkycUpload_0Kb_version {
                     }
                     case "YES": {
 
-//                        if (IdProoftype.equalsIgnoreCase("1") && AddressProofType.equalsIgnoreCase("1") && StatusValue.equalsIgnoreCase("S") && !dataMap.get("EKYCFLAG").equalsIgnoreCase("Y")) {
-//                            fileA = path + File.separator + "Address Proof Front.jpg";
-//                            fileB = path + File.separator + "Address Proof Back.jpg";
-//                            csvName = "Address_ID Proof";
-//                            proofName = "UID_3.pdf";
-//                            StatusValue = "Y";
-//                            System.out.println("2--Working==");
-//                        } else 
-//                        if (strTemp.equalsIgnoreCase("Address Proof")) {
-//                            System.out.println("4--Working==");
-//                            fileA = path + File.separator + "Address Proof Front.jpg";
-//                            fileB = path + File.separator + "Address Proof Back.jpg";
-//                            csvName = strTemp;
-//                            System.out.println("Status---" + StatusValue);
-//                            if (AddressProofType.equalsIgnoreCase("1") && IdProoftype.equalsIgnoreCase("1") && !StatusValue.equalsIgnoreCase("Y")) {
-//                                proofName = "UID_1.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("2") && IdProoftype.equalsIgnoreCase("2")) {
-//                                proofName = "Voters_Identity_Card_1.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("4") && IdProoftype.equalsIgnoreCase("4")) {
-//                                proofName = "Passport_1.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("5")) {
-//                                proofName = "Utility_Bill.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("6")) {
-//                                proofName = "Driving_License.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("7")) {
-//                                proofName = "NREGA_Job_Card.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("8")) {
-//                                proofName = "Utility_Bill.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("3")) {
-//                                proofName = "Other.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("1") && (IdProoftype.equalsIgnoreCase("2") || IdProoftype.equalsIgnoreCase("3")) && !StatusValue.equalsIgnoreCase("Y")) {
-//                                proofName = "UID.pdf";
-//                            } else if (AddressProofType.equalsIgnoreCase("2") && (IdProoftype.equalsIgnoreCase("1") || IdProoftype.equalsIgnoreCase("3"))) {
-//                                proofName = "Voters_Identity_Card.pdf";
-//                            }
-//                            StatusValue = "N";
-//                        } else 
                         if (strTemp.equalsIgnoreCase("ID Proof")) {
                             System.out.println("5--Working==");
                             fileA = path + File.separator + "ID Proof Front.jpg";
@@ -858,6 +817,8 @@ public class MFCkycUpload_0Kb_version {
 
                 File file_back = new File(fileB);
 
+                String entry = null;
+
                 if (file_front.exists() && file_back.exists()) {
                     files.add(fileA);
                     files.add(fileB);
@@ -866,8 +827,16 @@ public class MFCkycUpload_0Kb_version {
                     System.out.println("[MFCKYC-UPLOAD]---fileB--" + fileB);
                     System.out.println("[MFCKYC-UPLOAD]--Pdf upload csvname: " + csvName);
                     ImageToPDF(files, path + File.separator + proofName);
-                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
-                    writer.writeNext(values);
+
+//                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
+//                    writer.writeNext(values);
+                    entry = proofName + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
+
+                    // Check if the entry is unique
                     if (StatusValue.equalsIgnoreCase("Y")) {
                         DeleteFile(files);
                         files.clear();
@@ -886,61 +855,38 @@ public class MFCkycUpload_0Kb_version {
                     // Handle the case where neither file exists, if needed
                 } else if (file_front.exists() && !file_back.exists()) {
                     System.out.println("[MFCKYC-UPLOAD]---BACK ID PROOF IS NOT AVAILABLE.");
-                    String[] values = (strTemp + " Front.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + strTemp).split(",");
-                    writer.writeNext(values);
+//                    String[] values = (strTemp + " Front.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + strTemp).split(",");
+//                    writer.writeNext(values);
+                    entry = strTemp + " Front.jpg" + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
                 } else if (!file_front.exists() && file_back.exists()) {
                     System.out.println("[MFCKYC-UPLOAD]---FRONT ID PROOF IS NOT AVAILABLE.");
-                    String[] values = (strTemp + " Back.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + strTemp).split(",");
-                    writer.writeNext(values);
+//                    String[] values = (strTemp + " Back.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + strTemp).split(",");
+//                    writer.writeNext(values);
+                    entry = strTemp + " Back.jpg" + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
+                }
+                if (entry != null) {
+                    if (uniqueEntries.add(entry)) {
+                        System.out.println("[MFCKYC-UPLOAD]-- Added the data to set for csv writing.");
+                    } else {
+                        System.out.println("[MFCKYC-UPLOAD]-- Duplicate entry skipped for " + proofName);
+                    }
+
                 }
 
-//                else {
-//                    String[] values;
-//                    // Only one file exists
-//                    if (!file_front.exists()) {
-//                        System.out.println("[MFCKYC-UPLOAD]---FRONT ID PROOF IS NOT AVAILABLE.");
-//                        values = (strTemp + " Front.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
-//                    } else {
-//                        System.out.println("[MFCKYC-UPLOAD]---BACK ID PROOF IS NOT AVAILABLE.");
-//                        values = (strTemp + " Back.jpg" + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
-//                    }
-//
-//                    writer.writeNext(values);
-//                }
-//                testFile = new File(fileA);
-//                if (testFile.exists()) {
-//                    files.add(fileA);
-//                    files.add(fileB);
-//                    System.out.println("[MFCKYC-UPLOAD]---fileA--" + fileA);
-//                    System.out.println("[MFCKYC-UPLOAD]---fileB--" + fileB);
-//                    System.out.println("[MFCKYC-UPLOAD]--Pdf upload csvname: " + csvName);
-//                    ImageToPDF(files, path + File.separator + proofName);
-//                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
-//                    writer.writeNext(values);
-//                    if (StatusValue.equalsIgnoreCase("Y")) {
-//                        DeleteFile(files);
-//                        files.clear();
-//                        fileA = path + File.separator + "ID Proof Front.jpg";
-//                        fileB = path + File.separator + "ID Proof Back.jpg";
-//                        files.add(fileA);
-//                        files.add(fileB);
-//                        DeleteFile(files);
-//                    } else {
-//                        DeleteFile(files);
-//                    }
-//                    files.clear();
-//                } else {
-//                    System.out.println("[MFCKYC-UPLOAD]--DOCUMENTS NOT FOUND: " + testFile.getName().toString());
-//                }
             }
-            writer.close();
-        } catch (FileNotFoundException fx) {
+            //writer.close();
+        } catch (Exception fx) {
             System.out.println("[MFCKYC-UPLOAD]--Updating File not found");
             updateFlag(con, dataMap.get("PROCESSINSTANCEID"), "ERR", "File is not created");
             System.out.println("Updating File ");
-        } catch (IOException ex) {
-            System.out.println("[MFCKYC-UPLOAD]-- Ex- " + ex);
-            ex.printStackTrace();
         }
     }
 
