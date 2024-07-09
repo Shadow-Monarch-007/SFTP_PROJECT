@@ -163,7 +163,7 @@ public class MFBacklogSFTP {
 
                 folderId = rs.getLong("FOLDERID");
                 pinstid = rs.getString("PROCESSINSTANCEID");
-                System.out.println("[MF-SFTP-BL]-- - PROCESSINSTANCEID = " + pinstid);
+                //System.out.println("[MF-SFTP-BL]-- - PROCESSINSTANCEID = " + pinstid);
 
                 dataMap.put("PROCESSINSTANCEID", pinstid);
                 dataMap.put("FOLDERID", folderId);

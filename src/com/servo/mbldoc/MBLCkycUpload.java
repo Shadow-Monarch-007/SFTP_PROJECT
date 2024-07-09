@@ -66,6 +66,8 @@ public class MBLCkycUpload {
 
     String sessionId = "";
 
+    Set<String> uniqueEntries;
+
     @Resource
     private SRVTimerServiceConfig Timer_Service_Id;
 
@@ -112,11 +114,12 @@ public class MBLCkycUpload {
                 String missingDocumentsString = "";
                 List<String> missingDocuments = new ArrayList<>();
                 List<String> size_zero = new ArrayList<>();
+                uniqueEntries = new HashSet<>();
                 System.out.println("[MBLCKYC-UPLOAD]-- PROCESSINSTANCEID=" + pinstid);
                 folderId = rs.getLong("FOLDERID");
                 pinstid = rs.getString("PROCESSINSTANCEID");
                 dataMap.put("PROCESSINSTANCEID", pinstid);
-                dataMap.put("FOLDERID", Long.valueOf(folderId));
+                dataMap.put("FOLDERID", folderId);
                 dataMap.put("ACTIVITYID", "NA");
                 dataMap.put("ACCOUNTNO", rs.getString("ACCOUNTNO"));
                 dataMap.put("CIFID", rs.getString("CIFID"));
@@ -221,6 +224,17 @@ public class MBLCkycUpload {
                                         break;
                                 }
                                 if (directory.exists() && directory.isDirectory()) {
+                                    File file = new File("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID"));
+                                    String csv = file.toString() + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + ".csv";
+                                    try (CSVWriter uniquewriter = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER)) {
+                                        System.out.println("[MBLCKYC-UPLOAD]-- Writing all unique entries to the CSV file:");
+                                        uniqueEntries.forEach((uniqueEntry) -> {
+                                            System.out.println("[MBLCKYC-UPLOAD]---ENTRY INSIDE THE SET: " + uniqueEntry);
+                                            String[] values = (uniqueEntry).split(",");
+                                            uniquewriter.writeNext(values);
+                                        });
+                                    }
+
                                     File[] files = directory.listFiles();
                                     if (files != null) {
                                         for (String documentName : documentNames) {
@@ -544,21 +558,29 @@ public class MBLCkycUpload {
             }
 
             System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + DocTypeName);
-            if (!docExtName.trim().startsWith("MBL Corrs Id") && !docExtName.trim().startsWith("MBL Primary Id") && !docExtName.trim().startsWith("MBL Bank Passbook")) {
-                System.out.println("[MBLCKYC-UPLOAD]-- Inside the if loop" + docExtName);
-                writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
-                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + docExtName).split(",");
-                writer.writeNext(values);
-                writer.close();
-            }
-//            System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + DocTypeName);
-//            if (!DocTypeName.trim().startsWith("Address Proof Corress") && !DocTypeName.trim().startsWith("Relation ID Proof") && !DocTypeName.trim().startsWith("Second ID Proof") && !DocTypeName.trim().startsWith("ID Proof") && !DocTypeName.trim().startsWith("Address Proof")) {
-//                System.out.println("[MBLCKYC-UPLOAD]-- Inside the if loop" + DocTypeName);
+//            if (!docExtName.trim().startsWith("MBL Corrs Id") && !docExtName.trim().startsWith("MBL Primary Id") && !docExtName.trim().startsWith("MBL Bank Passbook")) {
+//                System.out.println("[MBLCKYC-UPLOAD]-- Inside the if loop" + docExtName);
 //                writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
-//                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + DocTypeName).split(",");
+//                String[] values = (docExtName + "." + extension + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + docExtName).split(",");
 //                writer.writeNext(values);
 //                writer.close();
 //            }
+
+            if (!docExtName.trim().startsWith("MBL Corrs Id") && !docExtName.trim().startsWith("MBL Primary Id") && !docExtName.trim().startsWith("MBL Bank Passbook")) {
+                System.out.println("[MBLCKYC-UPLOAD]-- Inside the if loop" + docExtName);
+                String entry = docExtName + "." + extension + ","
+                        + dataMap.get("PROCESSINSTANCEID") + ","
+                        + dataMap.get("ACCOUNTNO") + ","
+                        + dataMap.get("CIFID") + ","
+                        + DocTypeName;
+
+                if (uniqueEntries.add(entry)) {
+                    System.out.println("[MFCKYC-UPLOAD]-- Added the data to set for csv writing.");
+                } else {
+                    System.out.println("[MFCKYC-UPLOAD]-- Duplicate entry skipped for " + DocTypeName);
+                }
+            }
+
             System.out.println("[MBLCKYC-UPLOAD]-- Csv Entry Created");
             status = 1;
         } catch (Exception ex) {
@@ -570,7 +592,7 @@ public class MBLCkycUpload {
     }
 
     public void cKycupdate(Map<String, String> dataMap, Connection con, String pinstid) {
-        CSVWriter writer = null;
+        //CSVWriter writer = null;
         int status = 0;
         String fileA = "";
         File testFile = null;
@@ -594,7 +616,7 @@ public class MBLCkycUpload {
             System.out.println("[MBLCKYC-UPLOAD]-- TEMPLOC-- SFTP-" + this.configObj.getDmsSftpLocalDir());
             dataMap.put("TEMPLOC", this.configObj.getDmsSftpLocalDir());
             String csv = file.toString() + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + ".csv";
-            writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
+            //writer = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER);
             System.out.println("[MBLCKYC-UPLOAD]-- CKyc-- csv file-" + csv);
             List<String> files = new ArrayList<>();
 
@@ -684,16 +706,27 @@ public class MBLCkycUpload {
                     proofName = "Bank_Statement.pdf";
                     StatusValue = "Y";
                 }
-                testFile = new File(fileA);
-                if (testFile.exists()) {
+                File file_front = new File(fileA);
+
+                File file_back = new File(fileB);
+
+                String entry = null;
+
+                if (file_front.exists() && file_back.exists()) {
                     files.add(fileA);
                     files.add(fileB);
+                    System.out.println("[MBLCKYC-UPLOAD]---BOTH FRONT AND BACK ID PROOFS ARE VAILABLE: ");
                     System.out.println("[MBLCKYC-UPLOAD]---fileA--" + fileA);
-                    System.out.println("[MBLCKYC-UPLOAD]---fileA--" + fileB);
+                    System.out.println("[MBLCKYC-UPLOAD]---fileB--" + fileB);
                     System.out.println("[MBLCKYC-UPLOAD]--Pdf upload csvname: " + csvName);
                     ImageToPDF(files, path + File.separator + proofName);
-                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
-                    writer.writeNext(values);
+                    entry = proofName + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
+
+                    // Check if the entry is unique
                     if (StatusValue.equalsIgnoreCase("Y")) {
                         DeleteFile(files);
                         files.clear();
@@ -706,18 +739,64 @@ public class MBLCkycUpload {
                         DeleteFile(files);
                     }
                     files.clear();
-                } else {
-                    System.out.println("[MBLCKYC-UPLOAD]-- Doc Not Found-Address Proof");
+                } else if (!file_front.exists() && !file_back.exists()) {
+                    // Neither file exists
+                    System.out.println("[MBLCKYC-UPLOAD]---NEITHER FRONT NOR BACK ID PROOFS ARE AVAILABLE.");
+                    // Handle the case where neither file exists, if needed
+                } else if (file_front.exists() && !file_back.exists()) {
+                    System.out.println("[MBLCKYC-UPLOAD]---BACK ID PROOF IS NOT AVAILABLE.");
+                    entry = strTemp + " Front.jpg" + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
+                } else if (!file_front.exists() && file_back.exists()) {
+                    System.out.println("[MBLCKYC-UPLOAD]---FRONT ID PROOF IS NOT AVAILABLE.");
+                    entry = strTemp + " Back.jpg" + ","
+                            + dataMap.get("PROCESSINSTANCEID") + ","
+                            + dataMap.get("ACCOUNTNO") + ","
+                            + dataMap.get("CIFID") + ","
+                            + csvName;
                 }
+                if (entry != null) {
+                    if (uniqueEntries.add(entry)) {
+                        System.out.println("[MBLCKYC-UPLOAD]-- Added the data to set for csv writing.");
+                    } else {
+                        System.out.println("[MBLCKYC-UPLOAD]-- Duplicate entry skipped for " + proofName);
+                    }
+
+                }
+//                testFile = new File(fileA);
+//                if (testFile.exists()) {
+//                    files.add(fileA);
+//                    files.add(fileB);
+//                    System.out.println("[MBLCKYC-UPLOAD]---fileA--" + fileA);
+//                    System.out.println("[MBLCKYC-UPLOAD]---fileA--" + fileB);
+//                    System.out.println("[MBLCKYC-UPLOAD]--Pdf upload csvname: " + csvName);
+//                    ImageToPDF(files, path + File.separator + proofName);
+//                    String[] values = (proofName + "," + dataMap.get("PROCESSINSTANCEID") + "," + dataMap.get("ACCOUNTNO") + "," + dataMap.get("CIFID") + "," + csvName).split(",");
+//                    writer.writeNext(values);
+//                    if (StatusValue.equalsIgnoreCase("Y")) {
+//                        DeleteFile(files);
+//                        files.clear();
+//                        fileA = path + File.separator + "ID Proof Front.jpg";
+//                        fileB = path + File.separator + "ID Proof Back.jpg";
+//                        files.add(fileA);
+//                        files.add(fileB);
+//                        DeleteFile(files);
+//                    } else {
+//                        DeleteFile(files);
+//                    }
+//                    files.clear();
+//                } else {
+//                    System.out.println("[MBLCKYC-UPLOAD]-- Doc Not Found-Address Proof");
+//                }
             }
-            writer.close();
-        } catch (FileNotFoundException fx) {
-            System.out.println("[MBLCKYC-UPLOAD]-- Updating File not found");
+            //writer.close();
+        } catch (Exception fx) {
+            System.out.println("[MBLCKYC-UPLOAD]-- Updating File not found: " + fx.getMessage());
             updateFlag(con, dataMap.get("PROCESSINSTANCEID"), "ERR", "File is not created");
             System.out.println("[MBLCKYC-UPLOAD]-- Updating File ");
-        } catch (IOException ex) {
-            System.out.println("[MBLCKYC-UPLOAD]-- CKyc Ex- " + ex);
-            ex.printStackTrace();
         }
     }
 

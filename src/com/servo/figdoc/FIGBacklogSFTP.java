@@ -83,6 +83,8 @@ public class FIGBacklogSFTP {
 
     String ExqueryString = "";
 
+    Set<String> uniqueEntries;
+
     @PostConstruct
     public void loadConfigurations(Connection con1) throws NoSuchProviderException, MessagingException {
         try {
@@ -157,6 +159,8 @@ public class FIGBacklogSFTP {
 
                 //List<String> foundDocument = new ArrayList<>();
                 List<String> size_zero = new ArrayList<>();
+
+                uniqueEntries = new HashSet<>();
 
                 folderId = rs.getLong("FOLDERID");
                 pinstid = rs.getString("PROCESSINSTANCEID");
@@ -289,6 +293,18 @@ public class FIGBacklogSFTP {
                             }
 
                             if (directory.exists() && directory.isDirectory()) {
+
+                                File file = new File("DMS_ARCHIVAL" + File.separator + "FIG" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID"));
+                                String csv = file.toString() + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + ".csv";
+                                try (CSVWriter uniquewriter = new CSVWriter(new FileWriter(csv, true), '|', CSVWriter.NO_QUOTE_CHARACTER)) {
+                                    System.out.println("[FIGCKYC-UPLOAD]-- Writing all unique entries to the CSV file:");
+                                    uniqueEntries.forEach((uniqueEntry) -> {
+                                        System.out.println("[FIGCKYC-UPLOAD]-- ENTRY INSIDE THE SET: " + uniqueEntry);
+                                        String[] values = (uniqueEntry).split(",");
+                                        uniquewriter.writeNext(values);
+                                    });
+                                }
+
                                 // List the files in the directory
                                 File[] files = directory.listFiles();
                                 if (files != null) {
@@ -613,7 +629,7 @@ public class FIGBacklogSFTP {
 
                                 dataMap.put("CsvName", "Customer Photo");
                             }
-                            status = fileOperation(is, dataMap,con);
+                            status = fileOperation(is, dataMap, con);
 
                             //END
                             is.close();
@@ -654,7 +670,7 @@ public class FIGBacklogSFTP {
         return status;
     }
 
-    public int fileOperation(ByteArrayInputStream is, Map dataMap,Connection con) {
+    public int fileOperation(ByteArrayInputStream is, Map dataMap, Connection con) {
         String cykc_filename = null;
         CSVWriter writer = null;
         int status = 0;
