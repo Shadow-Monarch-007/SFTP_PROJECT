@@ -47,7 +47,7 @@ public class Backlog_doc_details {
             System.out.println("[BL-DOC-CHECK]--SftpIp - " + configObj.getDmsSftpIp());
             System.out.println("[BL-DOC-CHECK]--SftpUserId - " + configObj.getDmsSftpUserId());
             System.out.println("[BL-DOC-CHECK]--BaclogIn - " + configObj.getBacklogsftpIn());
-            System.out.println("[BL-DOC-CHECK]--62KCIF_DIR - " + configObj.getBacklogsftpIn());
+            System.out.println("[BL-DOC-CHECK]--62KCIF_DIR - " + configObj.getLocalDirectry());
             tokenMap = service.getSession(configObj.getIstreamsIp(), configObj.getIstreamsPort(), "DMS_USER", "system123#");
             if (tokenMap.get("status").equals("1")) {
                 sessionId = tokenMap.get("sessionId").toString();
