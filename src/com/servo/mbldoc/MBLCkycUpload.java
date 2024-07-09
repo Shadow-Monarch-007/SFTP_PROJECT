@@ -545,18 +545,56 @@ public class MBLCkycUpload {
                 docExtName = "Form60";
             }
 
-            if (extension.equalsIgnoreCase("pdf")) {
-                byte[] array = new byte[is.available()];
-                is.read(array);
-                try (FileOutputStream fos = new FileOutputStream("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension)) {
-                    fos.write(array);
+            if (dataMap.get("EKYCFLAG").equalsIgnoreCase("Y")) {
+                System.out.println("[MBLCKYC-UPLOAD]--SKIPPING ID PROOF'S WHILE WRITTING.");
+                if (extension.equalsIgnoreCase("pdf")) {
+                    byte[] array = new byte[is.available()];
+                    is.read(array);
+                    try (FileOutputStream fos = new FileOutputStream("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension)) {
+                        fos.write(array);
+                        System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + "DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension);
+                    }
+                } else {
+
+                    if (!DocTypeName.trim().startsWith("ID Proof")) {
+                        System.out.println("[MBLCKYC-UPLOAD]-- Inside the if loop" + DocTypeName);
+                        BufferedImage bImageFromConvert = ImageIO.read(is);
+                        ImageIO.write(bImageFromConvert, extension, new File("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension));
+                        System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + "DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension);
+                    }
+
                 }
-                System.out.println("[MBLCKYC-UPLOAD]-- UPLOAD FILE - DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension);
+                //System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + DocTypeName);
+
             } else {
-                BufferedImage bImageFromConvert = ImageIO.read(is);
-                ImageIO.write(bImageFromConvert, extension, new File("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension));
+
+                if (extension.equalsIgnoreCase("pdf")) {
+                    byte[] array = new byte[is.available()];
+                    is.read(array);
+                    try (FileOutputStream fos = new FileOutputStream("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension)) {
+                        fos.write(array);
+                    }
+                    System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + "DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension);
+                } else {
+                    System.out.println("[MBLCKYC-UPLOAD]--FILE TO BE WRITTEN: " + docExtName);
+                    BufferedImage bImageFromConvert = ImageIO.read(is);
+                    ImageIO.write(bImageFromConvert, extension, new File("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension));
+                    System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + "DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension);
+                }
+
             }
 
+//            if (extension.equalsIgnoreCase("pdf")) {
+//                byte[] array = new byte[is.available()];
+//                is.read(array);
+//                try (FileOutputStream fos = new FileOutputStream("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension)) {
+//                    fos.write(array);
+//                }
+//                System.out.println("[MBLCKYC-UPLOAD]-- UPLOAD FILE - DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension);
+//            } else {
+//                BufferedImage bImageFromConvert = ImageIO.read(is);
+//                ImageIO.write(bImageFromConvert, extension, new File("DMS_ARCHIVAL" + File.separator + "MBL" + File.separator + "SB_CKYC" + File.separator + "EXT-" + dataMap.get("CUSTOMERID") + File.separator + docExtName + "." + extension));
+//            }
             System.out.println("[MBLCKYC-UPLOAD]-- Doc Copied To Server Locations--" + DocTypeName);
 //            if (!docExtName.trim().startsWith("MBL Corrs Id") && !docExtName.trim().startsWith("MBL Primary Id") && !docExtName.trim().startsWith("MBL Bank Passbook")) {
 //                System.out.println("[MBLCKYC-UPLOAD]-- Inside the if loop" + docExtName);
